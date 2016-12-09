@@ -1,7 +1,7 @@
-package service
+package server
 
 import (
-  "testing"
+  "testing";
 
   "github.com/stretchr/testify/suite";
   "github.com/stretchr/testify/assert"
@@ -10,12 +10,12 @@ import (
 type RouteTestSuite struct {
   suite.Suite
   route *Route
+  protectedRoute *Route
 }
 
 func (suite *RouteTestSuite) SetupSuite() {
-  suite.route = newRoute(GET, "/test/:id/resource/:resource_id", func(r *Request) {})
+  suite.route = newRoute(GET, "/test/:id/resource/:resource_id", func(r *Request) {}, nil)
 }
-
 
 func (suite *RouteTestSuite) TestCompileSetsCorrectParamNames() {
   expectedParamNames := []string{":id", ":resource_id"}
