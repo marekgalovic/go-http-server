@@ -9,11 +9,11 @@ import (
 type MyAuthProvider struct{}
 
 func (p *MyAuthProvider) Verify(request *server.Request) error {
-  if request.Empty("user_name") {
-    return errors.New("Please provide user_name param.")
+  if request.Empty("user_token") {
+    return errors.New("Please provide user_token param.")
   }
-  if request.Get("user_name") != "marek" {
-    return errors.New("Invalid user_name param.")
+  if request.Get("user_token") != "secrettoken" {
+    return errors.New("Invalid user_token param.")
   }
   return nil
 }
