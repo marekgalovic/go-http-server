@@ -1,4 +1,4 @@
-# Go http server
+# Go http server [![Build Status](https://travis-ci.org/marekgalovic/go-http-server.svg?branch=master)](https://travis-ci.org/marekgalovic/go-http-server)
 
 This package provides wrapper around GO's native `net/http` library. It allows you to define parametrized routes and authentication providers while keeping minimal footprint.
 
