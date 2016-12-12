@@ -1,5 +1,5 @@
 package server
 
-type AuthProvider interface{
+type AuthProvider interface {
   Verify(*Request) error
 }

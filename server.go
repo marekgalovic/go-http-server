@@ -16,12 +16,14 @@ func NewServer(config *Config) *Server {
   return &Server{
     config: config,
     routes: make(map[string]map[*regexp.Regexp]*Route),
+    notifications: make(chan *Notification),
   }
 }
 
 type Server struct {
   config *Config
   routes map[string]map[*regexp.Regexp]*Route
+  notifications chan *Notification
 }
 
 func (s *Server) Listen() error {
@@ -117,7 +119,8 @@ func (s *Server) Handle(w http.ResponseWriter, req *http.Request) {
     go request.Error(404, fmt.Sprintf("Route [%s]%s does not exist.", req.Method, req.URL.Path))
   }
   response := request.response.write()
-  s.logHandlerResult(request, response)
+  go s.logHandlerResult(request, response)
+  go s.sendNotification(request, response)
 }
 
 func (s *Server) logHandlerResult(request *Request, response *Response) {
@@ -125,4 +128,15 @@ func (s *Server) logHandlerResult(request *Request, response *Response) {
     "Request. METHOD: %s, PATH: %s, REMOTE_ADDR: %s, RESPONSE_CODE: %d, DURATION: %s",
     request.Method, request.Path, request.RemoteAddr, response.Code, response.Duration,
   )
+}
+
+func (s *Server) Notifications() <- chan *Notification {
+  return s.notifications
+}
+
+func (s *Server) sendNotification(request *Request, response *Response) {
+  select {
+  case s.notifications <- &Notification{Request: request, Response: response}:
+  default:
+  }
 }

@@ -3,9 +3,15 @@ package server
 import (
   "io";
   "fmt";
+  "time";
+  "errors";
   "net/url";
   "net/http";
   "encoding/json"
+)
+
+var (
+  SessionStoreNotPresent error = errors.New("Session store is not present. Please initialize your server with session store.")
 )
 
 func newRequest(request *http.Request, responseWriter http.ResponseWriter) *Request {
@@ -16,6 +22,7 @@ func newRequest(request *http.Request, responseWriter http.ResponseWriter) *Requ
     Header: request.Header,
     RemoteAddr: request.RemoteAddr,
     Body: request.Body,
+    rawRequest: request,
     response: newResponse(responseWriter),
   }
 }
@@ -27,6 +34,7 @@ type Request struct {
   Header http.Header
   RemoteAddr string
   Body io.ReadCloser
+  rawRequest *http.Request
   response *Response
 }
 
@@ -65,4 +73,17 @@ func (r *Request) Error(code int, message string, params ...interface{}) {
 func (r *Request) ErrorJson(code int, data interface{}) {
   r.response.setCode(code)
   r.RespondJson(data)
+}
+
+func (r *Request) GetCookie(name string) string {
+  cookie, err := r.rawRequest.Cookie(name)
+  if err != nil {
+    return ""
+  }
+  return cookie.Value
+}
+
+func (r *Request) SetCookie(name string, value string, duration time.Duration) {
+  cookie := &http.Cookie{Name: name, Value: value, Expires: time.Now().Add(duration)}
+  http.SetCookie(r.response.writer, cookie)
 }
