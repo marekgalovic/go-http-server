@@ -7,14 +7,15 @@ import (
   "errors";
   "net/url";
   "net/http";
-  "encoding/json"
+  "path/filepath";
+  "encoding/json";
 )
 
 var (
   SessionStoreNotPresent error = errors.New("Session store is not present. Please initialize your server with session store.")
 )
 
-func newRequest(request *http.Request, responseWriter http.ResponseWriter) *Request {
+func newRequest(request *http.Request, responseWriter http.ResponseWriter, fileRoot string) *Request {
   return &Request{
     Method: request.Method,
     Path: request.URL.Path,
@@ -22,6 +23,7 @@ func newRequest(request *http.Request, responseWriter http.ResponseWriter) *Requ
     Header: request.Header,
     RemoteAddr: request.RemoteAddr,
     Body: request.Body,
+    fileRoot: fileRoot,
     rawRequest: request,
     response: newResponse(responseWriter),
   }
@@ -34,6 +36,7 @@ type Request struct {
   Header http.Header
   RemoteAddr string
   Body io.ReadCloser
+  fileRoot string
   rawRequest *http.Request
   response *Response
 }
@@ -73,6 +76,11 @@ func (r *Request) Error(code int, message string, params ...interface{}) {
 func (r *Request) ErrorJson(code int, data interface{}) {
   r.response.setCode(code)
   r.RespondJson(data)
+}
+
+func (r *Request) ServeFile(path string) {
+  http.ServeFile(r.response.writer, r.rawRequest, filepath.Join(r.fileRoot, path))
+  r.response.setBody("")
 }
 
 func (r *Request) GetCookie(name string) string {

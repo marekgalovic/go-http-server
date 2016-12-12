@@ -7,7 +7,6 @@ import (
   "errors";
   "regexp";
   "net/http";
-  "path/filepath";
 )
 
 var Logger = log.New(os.Stdout, "[http-server] ", log.Flags())
@@ -46,19 +45,6 @@ func (s *Server) bindAddress() string {
 
 func (s *Server) usesTls() bool {
   return s.config.CertFile != "" && s.config.KeyFile != ""
-}
-
-func (s *Server) Static(route string, dirName string, authentication AuthProvider) error {
-  if string(route[len(route)-1]) != "/" {
-    route = fmt.Sprintf("%s/", route)
-  }
-  http.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
-    requestedPath := r.URL.Path[len(route):]
-    fullRequestedPath := filepath.Join(s.config.StaticRoot, dirName, requestedPath)
-    http.ServeFile(w, r, fullRequestedPath)
-  })
-  Logger.Printf("Registered static handler [%s]%s", route, dirName)
-  return nil
 }
 
 func (s *Server) Get(route string, handler func(*Request), authentication AuthProvider) error {
@@ -106,7 +92,7 @@ func (s *Server) ensureMapForMethod(method string) {
 
 func (s *Server) Handle(w http.ResponseWriter, req *http.Request) {
   req.ParseForm()
-  request := newRequest(req, w)
+  request := newRequest(req, w, s.config.StaticRoot)
   route := s.getRoute(req.Method, req.URL.Path)
   if route != nil {
     err := route.checkAuthentication(request)

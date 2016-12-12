@@ -18,7 +18,7 @@ type RequestTestSuite struct{
 func (suite *RequestTestSuite) SetupTest() {
   req, _ := http.NewRequest("GET", "/test?key=value", nil)
   suite.res = httptest.NewRecorder()
-  suite.request = newRequest(req, suite.res)
+  suite.request = newRequest(req, suite.res, "/")
 }
 
 func (suite *RequestTestSuite) TestRespondWritesPlainTextDataAsResponse() {

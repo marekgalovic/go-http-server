@@ -21,7 +21,7 @@ func (p *SampleAuthProvider) Verify(request *Request) error {
   return errors.New("You don't have an access to this resource.")
 }
 
-func (suite *ServerTestSuite) SetupSuite() {
+func (suite *ServerTestSuite) SetupTest() {
   suite.server = NewServer(NewConfig())
 }
 
@@ -57,6 +57,16 @@ func (suite *ServerTestSuite) TestHandleExecutesCorrectActionAndPassesMultipleCo
   suite.server.Handle(res, req)
 
   assert.Equal(suite.T(), "okhola5", res.Body.String())
+}
+
+func (suite *ServerTestSuite) TestHandleMatchesWildcartRoutes() {
+  suite.server.Get("/dummy/*/:greeting", suite.DummyEndpoint, nil)
+
+  req, _ := http.NewRequest("GET", "/dummy/mat5ched/hola", nil)
+  res := httptest.NewRecorder()
+  suite.server.Handle(res, req)
+
+  assert.Equal(suite.T(), "okhola", res.Body.String())
 }
 
 func (suite *ServerTestSuite) TestHandleReturns401IfAuthenticatedRouteFailsToVerify() {

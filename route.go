@@ -40,8 +40,9 @@ func (r *Route) compile() error {
     return err
   }
   r.ParamNames = paramNames
-  routeRegex := paramNamesRegexp.ReplaceAllString(r.Path, `([\w-]+)`)
+  routeRegex := paramNamesRegexp.ReplaceAllString(r.Path, `([\w-./]+/?)`)
   routeRegex = strings.Replace(routeRegex, "/", "\\/", -1)
+  routeRegex = strings.Replace(routeRegex, "*", ".*", -1)
   r.Pattern, err = regexp.Compile(fmt.Sprintf("^%s$", routeRegex))
   if err != nil {
     return err
