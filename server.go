@@ -7,6 +7,7 @@ import (
   "errors";
   "regexp";
   "net/http";
+  "github.com/gorilla/sessions"
 )
 
 var Logger = log.New(os.Stdout, "[http-server] ", log.Flags())
@@ -22,6 +23,7 @@ func NewServer(config *Config) *Server {
 type Server struct {
   config *Config
   routes map[string]map[*regexp.Regexp]*Route
+  sessions sessions.Store
   notifications chan *Notification
 }
 
@@ -30,21 +32,6 @@ func (s *Server) Listen() error {
 
   Logger.Printf("Listening on: %s, TLS: %t", s.bindAddress(), s.usesTls())
   return s.bindListener()
-}
-
-func (s *Server) bindListener() error {
-  if s.usesTls() {
-    return http.ListenAndServeTLS(s.bindAddress(), s.config.CertFile, s.config.KeyFile, nil)
-  }
-  return http.ListenAndServe(s.bindAddress(), nil)
-}
-
-func (s *Server) bindAddress() string {
-  return fmt.Sprintf("%s:%d", s.config.Address, s.config.Port)
-}
-
-func (s *Server) usesTls() bool {
-  return s.config.CertFile != "" && s.config.KeyFile != ""
 }
 
 func (s *Server) Get(route string, handler func(*Request)*Response, authentication AuthProvider) error {
@@ -61,6 +48,25 @@ func (s *Server) Put(route string, handler func(*Request)*Response, authenticati
 
 func (s *Server) Delete(route string, handler func(*Request)*Response, authentication AuthProvider) error {
   return s.setRoute(newRoute(DELETE, route, handler, authentication))
+}
+
+func (s *Server) UseSessionStore(store sessions.Store) {
+  s.sessions = store
+}
+
+func (s *Server) bindListener() error {
+  if s.usesTls() {
+    return http.ListenAndServeTLS(s.bindAddress(), s.config.CertFile, s.config.KeyFile, nil)
+  }
+  return http.ListenAndServe(s.bindAddress(), nil)
+}
+
+func (s *Server) bindAddress() string {
+  return fmt.Sprintf("%s:%d", s.config.Address, s.config.Port)
+}
+
+func (s *Server) usesTls() bool {
+  return s.config.CertFile != "" && s.config.KeyFile != ""
 }
 
 func (s *Server) getRoute(method string, path string) *Route {

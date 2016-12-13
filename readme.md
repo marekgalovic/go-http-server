@@ -115,6 +115,23 @@ request.Response().SetHeader("Keep-Alive", "timeout=5")
 ```
 *Response methods support method chaining so you can use `request.Response().SetCode(404).Plain("Resource not found")`*
 
+## Sessions
+Although this package doesn't implement sessions support directly, it provides a convinient wrapper around [gorilla/sessions](https://github.com/gorilla/sessions). To set a session store call `UseSessionStore` method on server object and provide a store instance that implements `sessions.Store` interface.
+```go
+s.UseSessionStore(sessions.NewCookieStore([]byte("your-secret-key")))
+```
+Accessing session variables from your handler functions.
+```go
+session, _ := request.Session("session_name")
+// Get a value
+session.Get("key")
+// Set a value
+session.Set("key", "value")
+// Delete a value
+session.Delete("key")
+```
+`Set`, `Delete` will return a non nil error if there was an error while saving a session value. `request.Session` will return a non nil error if either no session store is set or there was an error while deserializing the session.
+
 ## Authentication providers
 You can create authentication provider to create authentication strategy that best fits your needs. There is only one method defined by `AuthProvider` interface called `Verify`. This method accepts `Request` object as a parameter and returns `Response` object if authentication fails and `nil` if authentication was successful.
 
