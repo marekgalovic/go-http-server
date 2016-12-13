@@ -47,19 +47,19 @@ func (s *Server) usesTls() bool {
   return s.config.CertFile != "" && s.config.KeyFile != ""
 }
 
-func (s *Server) Get(route string, handler func(*Request), authentication AuthProvider) error {
+func (s *Server) Get(route string, handler func(*Request)*Response, authentication AuthProvider) error {
   return s.setRoute(newRoute(GET, route, handler, authentication))
 }
 
-func (s *Server) Post(route string, handler func(*Request), authentication AuthProvider) error {
+func (s *Server) Post(route string, handler func(*Request)*Response, authentication AuthProvider) error {
   return s.setRoute(newRoute(POST, route, handler, authentication))
 }
 
-func (s *Server) Put(route string, handler func(*Request), authentication AuthProvider) error {
+func (s *Server) Put(route string, handler func(*Request)*Response, authentication AuthProvider) error {
   return s.setRoute(newRoute(PUT, route, handler, authentication))
 }
 
-func (s *Server) Delete(route string, handler func(*Request), authentication AuthProvider) error {
+func (s *Server) Delete(route string, handler func(*Request)*Response, authentication AuthProvider) error {
   return s.setRoute(newRoute(DELETE, route, handler, authentication))
 }
 
@@ -91,28 +91,25 @@ func (s *Server) ensureMapForMethod(method string) {
 }
 
 func (s *Server) Handle(w http.ResponseWriter, req *http.Request) {
-  req.ParseForm()
-  request := newRequest(req, w, s.config.StaticRoot)
+  request := newRequest(req, w, s)
   route := s.getRoute(req.Method, req.URL.Path)
+
+  var response *Response
   if route != nil {
-    err := route.checkAuthentication(request)
-    if err != nil {
-      go request.Error(401, err.Error())
-    } else {
-      go route.execute(request)
-    }
+    response = route.execute(request)
   } else {
-    go request.Error(404, fmt.Sprintf("Route [%s]%s does not exist.", req.Method, req.URL.Path))
+    response = request.Response().Error(404, "Route [%s]%s does not exist.", req.Method, req.URL.Path)
   }
-  response := request.response.write()
+
+  response.write()
   go s.logHandlerResult(request, response)
   go s.sendNotification(request, response)
 }
 
 func (s *Server) logHandlerResult(request *Request, response *Response) {
   Logger.Printf(
-    "Request. METHOD: %s, PATH: %s, REMOTE_ADDR: %s, RESPONSE_CODE: %d, DURATION: %s",
-    request.Method, request.Path, request.RemoteAddr, response.Code, response.Duration,
+    "%s. METHOD: %s, PATH: %s, REMOTE_ADDR: %s, RESPONSE_CODE: %d, DURATION: %s",
+    response.responseType, request.Method, request.Path, request.RemoteAddr, response.Code, response.Duration,
   )
 }
 

@@ -13,7 +13,7 @@ const (
   DELETE string = "DELETE";
 )
 
-func newRoute(method string, path string, handler func(*Request), authentication AuthProvider) *Route {
+func newRoute(method string, path string, handler func(*Request)*Response, authentication AuthProvider) *Route {
   return &Route{Method: method, Path: path, handler: handler, authentication: authentication}
 }
 
@@ -22,16 +22,20 @@ type Route struct {
   Path string
   Pattern *regexp.Regexp
   ParamNames []string
-  handler func(*Request)
+  handler func(*Request) *Response
   authentication AuthProvider
 }
 
-func (r *Route) execute(request *Request) {
+func (r *Route) execute(request *Request) *Response {
+  authenticationResponse := r.checkAuthentication(request)
+  if authenticationResponse != nil {
+    return authenticationResponse
+  }
+
   for paramName, paramValue := range r.parseRequestParams(request.Path) {
     request.Params.Set(paramName, paramValue)
   }
-
-  r.handler(request)
+  return r.handler(request)
 }
 
 func (r *Route) compile() error {
@@ -68,7 +72,7 @@ func (r *Route) parseRequestParams(path string) map[string]string {
   return params
 }
 
-func (r *Route) checkAuthentication(request *Request) error {
+func (r *Route) checkAuthentication(request *Request) *Response {
   if r.isProtected() {
     return r.authentication.Verify(request)
   }

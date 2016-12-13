@@ -2,12 +2,10 @@ package server
 
 import (
   "io";
-  "fmt";
   "time";
   "errors";
   "net/url";
   "net/http";
-  "path/filepath";
   "encoding/json";
 )
 
@@ -15,7 +13,8 @@ var (
   SessionStoreNotPresent error = errors.New("Session store is not present. Please initialize your server with session store.")
 )
 
-func newRequest(request *http.Request, responseWriter http.ResponseWriter, fileRoot string) *Request {
+func newRequest(request *http.Request, responseWriter http.ResponseWriter, server *Server) *Request {
+  request.ParseForm()
   return &Request{
     Method: request.Method,
     Path: request.URL.Path,
@@ -23,9 +22,10 @@ func newRequest(request *http.Request, responseWriter http.ResponseWriter, fileR
     Header: request.Header,
     RemoteAddr: request.RemoteAddr,
     Body: request.Body,
-    fileRoot: fileRoot,
+    server: server,
     rawRequest: request,
-    response: newResponse(responseWriter),
+    responseWriter: responseWriter,
+    createdAt: time.Now().UTC(),
   }
 }
 
@@ -36,9 +36,14 @@ type Request struct {
   Header http.Header
   RemoteAddr string
   Body io.ReadCloser
-  fileRoot string
+  server *Server
   rawRequest *http.Request
-  response *Response
+  responseWriter http.ResponseWriter
+  createdAt time.Time
+}
+
+func (r *Request) Response() *Response {
+  return newResponse(r)
 }
 
 func (r *Request) Get(param string) string {
@@ -54,35 +59,6 @@ func (r *Request) Json(value interface{}) error {
   return decoder.Decode(&value)
 }
 
-func (r *Request) Respond(data string, params ...interface{}) {
-  r.response.setBody(fmt.Sprintf(data, params...))
-}
-
-func (r *Request) RespondJson(data interface{}) {
-  r.response.setHeader("Content-Type", "application/json")
-  marshaled, err := json.Marshal(data)
-  if err != nil {
-    r.Error(500, "Unable to encode response.")
-    return
-  }
-  r.Respond(string(marshaled))
-}
-
-func (r *Request) Error(code int, message string, params ...interface{}) {
-  r.response.setCode(code)
-  r.Respond(message, params...)
-}
-
-func (r *Request) ErrorJson(code int, data interface{}) {
-  r.response.setCode(code)
-  r.RespondJson(data)
-}
-
-func (r *Request) ServeFile(path string) {
-  http.ServeFile(r.response.writer, r.rawRequest, filepath.Join(r.fileRoot, path))
-  r.response.setBody("")
-}
-
 func (r *Request) GetCookie(name string) string {
   cookie, err := r.rawRequest.Cookie(name)
   if err != nil {
@@ -93,5 +69,5 @@ func (r *Request) GetCookie(name string) string {
 
 func (r *Request) SetCookie(name string, value string, duration time.Duration) {
   cookie := &http.Cookie{Name: name, Value: value, Expires: time.Now().Add(duration)}
-  http.SetCookie(r.response.writer, cookie)
+  http.SetCookie(r.responseWriter, cookie)
 }

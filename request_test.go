@@ -1,6 +1,7 @@
 package server
 
 import (
+  "bytes";
   "testing";
   "net/http";
   "net/http/httptest";
@@ -15,33 +16,29 @@ type RequestTestSuite struct{
   res *httptest.ResponseRecorder
 }
 
+type SampleRequestBody struct {
+  Foo string
+}
+
 func (suite *RequestTestSuite) SetupTest() {
   req, _ := http.NewRequest("GET", "/test?key=value", nil)
   suite.res = httptest.NewRecorder()
-  suite.request = newRequest(req, suite.res, "/")
+  suite.request = newRequest(req, suite.res, nil)
 }
 
-func (suite *RequestTestSuite) TestRespondWritesPlainTextDataAsResponse() {
-  go suite.request.Respond("response")
-  suite.request.response.write()
-
-  assert.Equal(suite.T(), "response", suite.res.Body.String())
+func (suite *RequestTestSuite) TestGetReturnsParamValue() {
+  assert.Equal(suite.T(), "value", suite.request.Get("key"))
 }
 
-func (suite *RequestTestSuite) TestRespondJsonWritesJsonStringAsResponseAndSetsCorrectContentTypeHeader() {
-  go suite.request.RespondJson(&map[string]string{"foo": "bar"})
-  suite.request.response.write()
+func (suite *RequestTestSuite) TestJsonScansBodyContentToStruct() {
+  req, _ := http.NewRequest("POST", "/resource", bytes.NewBuffer([]byte(`{"foo": "bar"}`)))
+  req.Header.Set("Content-Type", "application/json")
+  request := newRequest(req, suite.res, nil)
 
-  assert.Equal(suite.T(), "application/json", suite.res.HeaderMap.Get("Content-Type"))
-  assert.Equal(suite.T(), `{"foo":"bar"}`, suite.res.Body.String())
-}
+  var body *SampleRequestBody
+  request.Json(&body)
 
-func (suite *RequestTestSuite) TestErrorWritesErrorStringAsAResonseAndSetsCorrectCode() {
-  go suite.request.Error(404, "Resource not found")
-  suite.request.response.write()
-
-  assert.Equal(suite.T(), 404, suite.res.Code)
-  assert.Equal(suite.T(), "Resource not found", suite.res.Body.String())
+  assert.Equal(suite.T(), "bar", body.Foo)
 }
 
 func TestRequestTestSuite(t *testing.T) {

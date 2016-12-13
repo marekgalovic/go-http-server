@@ -22,12 +22,12 @@ As you can see above, every route defnition needs to be associated with a handle
 
 ```go
 // example handler function
-func ListArticles(request *server.Request) {
+func ListArticles(request *server.Request) *server.Response {
     articles := []*Article{
         &Article{Id: 1, Title: "First"},
         &Article{Id: 2, Title: "Second"},
     }
-    request.RespondJson(articles)
+    return request.Response().Json(articles)
 }
 ```
 
@@ -61,38 +61,72 @@ var article Article
 request.Json(&article)
 ```
 
-`Respond` method to respond with plain-text body.
+`SetCookie` & `GetCookie` helpers to modify stored cookies.
 ```go
-request.Respond("Article id %d", 1)
+request.GetCookie("name")
+request.SetCookie("name", "value", 60 * time.Minute)
 ```
 
-`RespondJson` method to write JSON responses.
+`Response` method returns a response`(*Response)` object associated with this request.
 ```go
-request.RespondJson(map[string]string{"foo": "bar"})
+request.Response()
+```
+
+## Response
+
+`Plain` method to respond with plain-text body.
+```go
+request.Response().Plain("Article id %d", 1)
+```
+
+`Json` method to write JSON responses.
+```go
+request.Response().Json(map[string]string{"foo": "bar"})
 ```
 
 `Error` to write error responses with specific code.
 ```go
-request.Error(404, "Resource id: %d not found", 2)
+request.Response().Error(404, "Resource id: %d not found", 2)
 ```
 
 `ErrorJson` to write error responses with JSON body.
 ```go
-request.Error(500, map[string]string{"message": "Unable to connect to database"})
+request.Response().Error(500, map[string]string{"message": "Unable to connect to database"})
 ```
 
+`File` to respond with a file. File path should be relative to `StaticRoot` defined in server config.
+```go
+request.Response().File("/path/to/my_file.pdf")
+```
+
+`Redirect`
+```go
+request.Response().Redirect(301, "http://google.com")
+```
+
+`SetCode`
+```go
+request.Response().SetCode(500)
+```
+
+`SetHeader` to set a response headers.
+```go
+request.Response().SetHeader("Keep-Alive", "timeout=5")
+```
+*Response methods support method chaining so you can use `request.Response().SetCode(404).Plain("Resource not found")`*
+
 ## Authentication providers
-You can create authentication provider to create authentication strategy that best fits your needs. There is only one method defined by `AuthProvider` interface called `Verify`. This method accepts `Request` object as a parameter and returns `error` object if authentication fails and `nil` if authentication was successful.
+You can create authentication provider to create authentication strategy that best fits your needs. There is only one method defined by `AuthProvider` interface called `Verify`. This method accepts `Request` object as a parameter and returns `Response` object if authentication fails and `nil` if authentication was successful.
 
 Define an authentication provider
 ```go
 type MyAuthProvider struct {}
 
-func (auth *MyAuthProvider) Verify(request *server.Request) error {
+func (auth *MyAuthProvider) Verify(request *server.Request) *server.Response {
     if request.Get("auth_token") == "secret_token" {
         return nil
     }
-    return errors.New("Authentication failed")
+    return request.Response().Error(401, "Authentication failed")
 }
 ```
 Use the provider to protect your routes

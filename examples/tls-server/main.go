@@ -20,6 +20,6 @@ func main() {
   }
 }
 
-func EncryptedGreeting(request *server.Request) {
-  request.Respond("Encrypted hi!")
+func EncryptedGreeting(request *server.Request) *server.Response {
+  return request.Response().Plain("Encrypted hi!")
 }

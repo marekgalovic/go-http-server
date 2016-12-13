@@ -2,18 +2,17 @@ package main
 
 import (
   "log";
-  "errors";
   "github.com/marekgalovic/go-http-server"
 )
 
 type MyAuthProvider struct{}
 
-func (p *MyAuthProvider) Verify(request *server.Request) error {
+func (p *MyAuthProvider) Verify(request *server.Request) *server.Response {
   if request.Empty("user_token") {
-    return errors.New("Please provide user_token param.")
+    return request.Response().Error(400, "Please provide user_token.")
   }
   if request.Get("user_token") != "secrettoken" {
-    return errors.New("Invalid user_token param.")
+    return request.Response().Error(401, "Invalid user_token.")
   }
   return nil
 }
@@ -31,6 +30,6 @@ func main() {
   }
 }
 
-func SayHiOnlyToMarek(request *server.Request) {
-  request.Respond("Hi Marek!")
+func SayHiOnlyToMarek(request *server.Request) *server.Response {
+  return request.Response().Plain("Hi Marek!")
 }

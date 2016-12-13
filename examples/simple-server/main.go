@@ -17,6 +17,6 @@ func main() {
   }
 }
 
-func SayHi(request *server.Request) {
-  request.Respond("Hi!")
+func SayHi(request *server.Request) *server.Response {
+  return request.Response().Plain("Hi!")
 }
