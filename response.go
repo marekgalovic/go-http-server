@@ -39,7 +39,7 @@ func (r *Response) Json(data interface{}) *Response {
   r.SetHeader("Content-Type", "application/json")
   marshaled, err := json.Marshal(data)
   if err != nil {
-    return r.Error(500, "Unable to encode response.")
+    return r.Error(500, "Unable to encode response. %s", err.Error())
   }
   return r.Plain(string(marshaled))
 }
