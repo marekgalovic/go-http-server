@@ -8,7 +8,6 @@ import (
   "net/url";
   "net/http";
   "encoding/json";
-  "path/filepath";
 )
 
 func newRequest(request *http.Request, responseWriter http.ResponseWriter, server *Server) *Request {
@@ -60,7 +59,7 @@ func (r *Request) Json(value interface{}) error {
 }
 
 func (r *Request) Route(path string) string {
-  return fmt.Sprintf("http://%s", filepath.Join(r.Host, path))
+  return fmt.Sprintf("%s%s", r.server.config.Domain, path)
 }
 
 func (r *Request) GetCookie(name string) string {

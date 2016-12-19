@@ -10,4 +10,5 @@ type Config struct {
   StaticRoot string
   CertFile string
   KeyFile string
+  Domain string
 }
